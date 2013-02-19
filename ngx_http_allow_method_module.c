@@ -169,7 +169,13 @@ ngx_module_t  ngx_http_allow_method_module = {
 static ngx_int_t
 ngx_http_allow_method_handler(ngx_http_request_t *r)
 {
-    return NGX_OK;
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "http allow_method handler");
+
+    r->method = NGX_HTTP_POST;
+
+    return NGX_DECLINED;
+
 #if 0
     ngx_int_t                 rc;
     ngx_http_allow_method_loc_conf_t  *dlcf;
