@@ -9,25 +9,11 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 
-
-#if 0
-#define NGX_HTTP_DAV_COPY_BLOCK      65536
-
-#define NGX_HTTP_DAV_OFF             2
-
-
-#define NGX_HTTP_DAV_NO_DEPTH        -3
-#define NGX_HTTP_DAV_INVALID_DEPTH   -2
-#define NGX_HTTP_DAV_INFINITY_DEPTH  -1
-#endif
-
+#define NGX_HTTP_UNKNOWN_BUT_ALLOWED NGX_HTTP_POST
 
 typedef struct {
-#if 0
-    ngx_uint_t  methods;
-    ngx_uint_t  access;
-    ngx_uint_t  min_delete_depth;
-    ngx_flag_t  create_full_put_path;
+#if (NGX_PCRE)
+    ngx_regex_t  *regex;
 #endif
 } ngx_http_allow_method_loc_conf_t;
 
@@ -55,9 +41,41 @@ static ngx_command_t  ngx_http_allow_method_commands[] = {
 static char *
 ngx_http_allow_method_set_allow_methods(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-    //ngx_http_allow_method_loc_conf_t *llcf = conf;
+#if (NGX_PCRE)
+
+    ngx_http_allow_method_loc_conf_t *clcf = conf;
+
+    ngx_str_t            *value;
+    ngx_regex_compile_t   rc;
+    u_char                errstr[NGX_MAX_CONF_ERRSTR];
+
+    value = cf->args->elts;
+
+    ngx_memzero(&rc, sizeof(ngx_regex_compile_t));
+
+    rc.pattern = value[1];
+    rc.pool = cf->pool;
+    rc.options = 1;                    /* case sensitive */
+    rc.err.len = NGX_MAX_CONF_ERRSTR;
+    rc.err.data = errstr;
+
+    if (ngx_regex_compile(&rc) != NGX_OK) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "%V", &rc.err);
+        return NGX_CONF_ERROR;
+    }
+
+    clcf->regex = rc.regex;
 
     return NGX_CONF_OK;
+
+#else
+
+    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                       "using regex \"%V\" requires PCRE library",
+                       regex);
+    return NGX_ERROR;
+
+#endif
 }
 
 static ngx_http_module_t  ngx_http_allow_method_module_ctx = {
@@ -94,10 +112,32 @@ ngx_module_t  ngx_http_allow_method_module = {
 static ngx_int_t
 ngx_http_allow_method_handler(ngx_http_request_t *r)
 {
+#if (NGX_PCRE)
+    ngx_int_t                         rc;
+    ngx_http_allow_method_loc_conf_t *clcf;
+    int                               captures[1];
+
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "http allow_method handler");
 
-    r->method = NGX_HTTP_POST;
+    clcf = ngx_http_get_module_loc_conf(r, ngx_http_allow_method_module);
+
+    if (clcf->regex == NULL) {
+        return NGX_DECLINED;
+    }
+
+    rc = ngx_regex_exec(clcf->regex, &r->method_name, captures, 1);
+
+    if (rc == NGX_REGEX_NO_MATCHED) {
+        ngx_http_finalize_request(r, NGX_HTTP_NOT_ALLOWED);
+    }
+
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "http allow_method faking request method as POST (%d -> %d)", r->method, NGX_HTTP_UNKNOWN_BUT_ALLOWED);
+
+    r->method = NGX_HTTP_UNKNOWN_BUT_ALLOWED;
+
+#endif
 
     return NGX_DECLINED;
 }
@@ -132,12 +172,16 @@ ngx_http_allow_method_create_loc_conf(ngx_conf_t *cf)
 static char *
 ngx_http_allow_method_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
-#if 0
     ngx_http_allow_method_loc_conf_t  *prev = parent;
     ngx_http_allow_method_loc_conf_t  *conf = child;
 
-    ngx_conf_merge_bitmask_value(conf->methods, prev->methods,
-                         (NGX_CONF_BITMASK_SET|NGX_HTTP_DAV_OFF));
+#if (NGX_PCRE)
+    if (conf->regex == NULL) {
+        conf->regex = prev->regex;
+    }
+#endif
+
+#if 0
 
     ngx_conf_merge_uint_value(conf->min_delete_depth,
                          prev->min_delete_depth, 0);
