@@ -10,6 +10,7 @@
 #include <ngx_http.h>
 
 
+#if 0
 #define NGX_HTTP_DAV_COPY_BLOCK      65536
 
 #define NGX_HTTP_DAV_OFF             2
@@ -18,24 +19,30 @@
 #define NGX_HTTP_DAV_NO_DEPTH        -3
 #define NGX_HTTP_DAV_INVALID_DEPTH   -2
 #define NGX_HTTP_DAV_INFINITY_DEPTH  -1
+#endif
 
 
 typedef struct {
+#if 0
     ngx_uint_t  methods;
     ngx_uint_t  access;
     ngx_uint_t  min_delete_depth;
     ngx_flag_t  create_full_put_path;
-} ngx_http_dav_loc_conf_t;
+#endif
+} ngx_http_allow_method_loc_conf_t;
 
 
+#if 0
 typedef struct {
     ngx_str_t   path;
     size_t      len;
 } ngx_http_dav_copy_ctx_t;
+#endif
 
 
-static ngx_int_t ngx_http_dav_handler(ngx_http_request_t *r);
+static ngx_int_t ngx_http_allow_method_handler(ngx_http_request_t *r);
 
+#if 0
 static void ngx_http_dav_put_handler(ngx_http_request_t *r);
 
 static ngx_int_t ngx_http_dav_delete_handler(ngx_http_request_t *r);
@@ -46,7 +53,7 @@ static ngx_int_t ngx_http_dav_delete_file(ngx_tree_ctx_t *ctx, ngx_str_t *path);
 static ngx_int_t ngx_http_dav_noop(ngx_tree_ctx_t *ctx, ngx_str_t *path);
 
 static ngx_int_t ngx_http_dav_mkcol_handler(ngx_http_request_t *r,
-    ngx_http_dav_loc_conf_t *dlcf);
+    ngx_http_allow_method_loc_conf_t *dlcf);
 
 static ngx_int_t ngx_http_dav_copy_move_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_dav_copy_dir(ngx_tree_ctx_t *ctx, ngx_str_t *path);
@@ -59,12 +66,14 @@ static ngx_int_t ngx_http_dav_depth(ngx_http_request_t *r, ngx_int_t dflt);
 static ngx_int_t ngx_http_dav_error(ngx_log_t *log, ngx_err_t err,
     ngx_int_t not_found, char *failed, u_char *path);
 static ngx_int_t ngx_http_dav_location(ngx_http_request_t *r, u_char *path);
-static void *ngx_http_dav_create_loc_conf(ngx_conf_t *cf);
-static char *ngx_http_dav_merge_loc_conf(ngx_conf_t *cf,
-    void *parent, void *child);
-static ngx_int_t ngx_http_dav_init(ngx_conf_t *cf);
+#endif
+static void *ngx_http_allow_method_create_loc_conf(ngx_conf_t *cf);
+static char *ngx_http_allow_method_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
+static char *ngx_http_allow_method_set_allow_methods(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static ngx_int_t ngx_http_allow_method_init(ngx_conf_t *cf);
 
 
+#if 0
 static ngx_conf_bitmask_t  ngx_http_dav_methods_mask[] = {
     { ngx_string("off"), NGX_HTTP_DAV_OFF },
     { ngx_string("put"), NGX_HTTP_PUT },
@@ -74,80 +83,98 @@ static ngx_conf_bitmask_t  ngx_http_dav_methods_mask[] = {
     { ngx_string("move"), NGX_HTTP_MOVE },
     { ngx_null_string, 0 }
 };
+#endif
 
 
-static ngx_command_t  ngx_http_dav_commands[] = {
+static ngx_command_t  ngx_http_allow_method_commands[] = {
 
+    { ngx_string("allow_methods"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_1MORE,
+      ngx_http_allow_method_set_allow_methods,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
+#if 0
     { ngx_string("dav_methods"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_1MORE,
       ngx_conf_set_bitmask_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_dav_loc_conf_t, methods),
+      offsetof(ngx_http_allow_method_loc_conf_t, methods),
       &ngx_http_dav_methods_mask },
 
     { ngx_string("create_full_put_path"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_dav_loc_conf_t, create_full_put_path),
+      offsetof(ngx_http_allow_method_loc_conf_t, create_full_put_path),
       NULL },
 
     { ngx_string("min_delete_depth"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_num_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_dav_loc_conf_t, min_delete_depth),
+      offsetof(ngx_http_allow_method_loc_conf_t, min_delete_depth),
       NULL },
 
     { ngx_string("dav_access"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE123,
       ngx_conf_set_access_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_dav_loc_conf_t, access),
+      offsetof(ngx_http_allow_method_loc_conf_t, access),
       NULL },
+#endif
 
       ngx_null_command
 };
 
+static char *
+ngx_http_allow_method_set_allow_methods(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    //ngx_http_allow_method_loc_conf_t *llcf = conf;
 
-static ngx_http_module_t  ngx_http_dav_module_ctx = {
-    NULL,                                  /* preconfiguration */
-    ngx_http_dav_init,                     /* postconfiguration */
+    return NGX_CONF_OK;
+}
 
-    NULL,                                  /* create main configuration */
-    NULL,                                  /* init main configuration */
+static ngx_http_module_t  ngx_http_allow_method_module_ctx = {
+    NULL,                                           /* preconfiguration */
+    ngx_http_allow_method_init,                     /* postconfiguration */
+                                             
+    NULL,                                           /* create main configuration */
+    NULL,                                           /* init main configuration */
+                                             
+    NULL,                                           /* create server configuration */
+    NULL,                                           /* merge server configuration */
 
-    NULL,                                  /* create server configuration */
-    NULL,                                  /* merge server configuration */
-
-    ngx_http_dav_create_loc_conf,          /* create location configuration */
-    ngx_http_dav_merge_loc_conf            /* merge location configuration */
+    ngx_http_allow_method_create_loc_conf,          /* create location configuration */
+    ngx_http_allow_method_merge_loc_conf            /* merge location configuration */
 };
 
 
-ngx_module_t  ngx_http_dav_module = {
+ngx_module_t  ngx_http_allow_method_module = {
     NGX_MODULE_V1,
-    &ngx_http_dav_module_ctx,              /* module context */
-    ngx_http_dav_commands,                 /* module directives */
-    NGX_HTTP_MODULE,                       /* module type */
-    NULL,                                  /* init master */
-    NULL,                                  /* init module */
-    NULL,                                  /* init process */
-    NULL,                                  /* init thread */
-    NULL,                                  /* exit thread */
-    NULL,                                  /* exit process */
-    NULL,                                  /* exit master */
+    &ngx_http_allow_method_module_ctx,              /* module context */
+    ngx_http_allow_method_commands,                 /* module directives */
+    NGX_HTTP_MODULE,                                /* module type */
+    NULL,                                           /* init master */
+    NULL,                                           /* init module */
+    NULL,                                           /* init process */
+    NULL,                                           /* init thread */
+    NULL,                                           /* exit thread */
+    NULL,                                           /* exit process */
+    NULL,                                           /* exit master */
     NGX_MODULE_V1_PADDING
 };
 
 
 static ngx_int_t
-ngx_http_dav_handler(ngx_http_request_t *r)
+ngx_http_allow_method_handler(ngx_http_request_t *r)
 {
+    return NGX_OK;
+#if 0
     ngx_int_t                 rc;
-    ngx_http_dav_loc_conf_t  *dlcf;
+    ngx_http_allow_method_loc_conf_t  *dlcf;
 
-    dlcf = ngx_http_get_module_loc_conf(r, ngx_http_dav_module);
+    dlcf = ngx_http_get_module_loc_conf(r, ngx_http_allow_method_module);
 
     if (!(r->method & dlcf->methods)) {
         return NGX_DECLINED;
@@ -195,9 +222,11 @@ ngx_http_dav_handler(ngx_http_request_t *r)
     }
 
     return NGX_DECLINED;
+#endif
 }
 
 
+#if 0
 static void
 ngx_http_dav_put_handler(ngx_http_request_t *r)
 {
@@ -207,7 +236,7 @@ ngx_http_dav_put_handler(ngx_http_request_t *r)
     ngx_uint_t                status;
     ngx_file_info_t           fi;
     ngx_ext_rename_file_t     ext;
-    ngx_http_dav_loc_conf_t  *dlcf;
+    ngx_http_allow_method_loc_conf_t  *dlcf;
 
     if (r->request_body == NULL || r->request_body->temp_file == NULL) {
         ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -244,7 +273,7 @@ ngx_http_dav_put_handler(ngx_http_request_t *r)
         }
     }
 
-    dlcf = ngx_http_get_module_loc_conf(r, ngx_http_dav_module);
+    dlcf = ngx_http_get_module_loc_conf(r, ngx_http_allow_method_module);
 
     ext.access = dlcf->access;
     ext.path_access = dlcf->access;
@@ -283,8 +312,9 @@ ngx_http_dav_put_handler(ngx_http_request_t *r)
     ngx_http_finalize_request(r, ngx_http_send_header(r));
     return;
 }
+#endif
 
-
+#if 0
 static ngx_int_t
 ngx_http_dav_delete_handler(ngx_http_request_t *r)
 {
@@ -294,7 +324,7 @@ ngx_http_dav_delete_handler(ngx_http_request_t *r)
     ngx_uint_t                i, d, dir;
     ngx_str_t                 path;
     ngx_file_info_t           fi;
-    ngx_http_dav_loc_conf_t  *dlcf;
+    ngx_http_allow_method_loc_conf_t  *dlcf;
 
     if (r->headers_in.content_length_n > 0) {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
@@ -302,7 +332,7 @@ ngx_http_dav_delete_handler(ngx_http_request_t *r)
         return NGX_HTTP_UNSUPPORTED_MEDIA_TYPE;
     }
 
-    dlcf = ngx_http_get_module_loc_conf(r, ngx_http_dav_module);
+    dlcf = ngx_http_get_module_loc_conf(r, ngx_http_allow_method_module);
 
     if (dlcf->min_delete_depth) {
         d = 0;
@@ -382,8 +412,9 @@ ok:
 
     return rc;
 }
+#endif
 
-
+#if 0
 static ngx_int_t
 ngx_http_dav_delete_path(ngx_http_request_t *r, ngx_str_t *path, ngx_uint_t dir)
 {
@@ -425,8 +456,9 @@ ngx_http_dav_delete_path(ngx_http_request_t *r, ngx_str_t *path, ngx_uint_t dir)
     return ngx_http_dav_error(r->connection->log, ngx_errno,
                               NGX_HTTP_NOT_FOUND, failed, path->data);
 }
+#endif
 
-
+#if 0
 static ngx_int_t
 ngx_http_dav_delete_dir(ngx_tree_ctx_t *ctx, ngx_str_t *path)
 {
@@ -443,8 +475,9 @@ ngx_http_dav_delete_dir(ngx_tree_ctx_t *ctx, ngx_str_t *path)
 
     return NGX_OK;
 }
+#endif
 
-
+#if 0
 static ngx_int_t
 ngx_http_dav_delete_file(ngx_tree_ctx_t *ctx, ngx_str_t *path)
 {
@@ -461,17 +494,19 @@ ngx_http_dav_delete_file(ngx_tree_ctx_t *ctx, ngx_str_t *path)
 
     return NGX_OK;
 }
+#endif
 
-
+#if 0
 static ngx_int_t
 ngx_http_dav_noop(ngx_tree_ctx_t *ctx, ngx_str_t *path)
 {
     return NGX_OK;
 }
+#endif
 
-
+#if 0
 static ngx_int_t
-ngx_http_dav_mkcol_handler(ngx_http_request_t *r, ngx_http_dav_loc_conf_t *dlcf)
+ngx_http_dav_mkcol_handler(ngx_http_request_t *r, ngx_http_allow_method_loc_conf_t *dlcf)
 {
     u_char    *p;
     size_t     root;
@@ -510,8 +545,9 @@ ngx_http_dav_mkcol_handler(ngx_http_request_t *r, ngx_http_dav_loc_conf_t *dlcf)
     return ngx_http_dav_error(r->connection->log, ngx_errno,
                               NGX_HTTP_CONFLICT, ngx_create_dir_n, path.data);
 }
+#endif
 
-
+#if 0
 static ngx_int_t
 ngx_http_dav_copy_move_handler(ngx_http_request_t *r)
 {
@@ -527,7 +563,7 @@ ngx_http_dav_copy_move_handler(ngx_http_request_t *r)
     ngx_table_elt_t          *dest, *over;
     ngx_ext_rename_file_t     ext;
     ngx_http_dav_copy_ctx_t   copy;
-    ngx_http_dav_loc_conf_t  *dlcf;
+    ngx_http_allow_method_loc_conf_t  *dlcf;
 
     if (r->headers_in.content_length_n > 0) {
         return NGX_HTTP_UNSUPPORTED_MEDIA_TYPE;
@@ -800,7 +836,7 @@ overwrite_done:
 
         if (r->method == NGX_HTTP_MOVE) {
 
-            dlcf = ngx_http_get_module_loc_conf(r, ngx_http_dav_module);
+            dlcf = ngx_http_get_module_loc_conf(r, ngx_http_allow_method_module);
 
             ext.access = 0;
             ext.path_access = dlcf->access;
@@ -816,7 +852,7 @@ overwrite_done:
             return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
 
-        dlcf = ngx_http_get_module_loc_conf(r, ngx_http_dav_module);
+        dlcf = ngx_http_get_module_loc_conf(r, ngx_http_allow_method_module);
 
         cf.size = ngx_file_size(&fi);
         cf.buf_size = 0;
@@ -831,8 +867,9 @@ overwrite_done:
 
     return NGX_HTTP_INTERNAL_SERVER_ERROR;
 }
+#endif
 
-
+#if 0
 static ngx_int_t
 ngx_http_dav_copy_dir(ngx_tree_ctx_t *ctx, ngx_str_t *path)
 {
@@ -867,8 +904,9 @@ ngx_http_dav_copy_dir(ngx_tree_ctx_t *ctx, ngx_str_t *path)
 
     return NGX_OK;
 }
+#endif
 
-
+#if 0
 static ngx_int_t
 ngx_http_dav_copy_dir_time(ngx_tree_ctx_t *ctx, ngx_str_t *path)
 {
@@ -931,8 +969,9 @@ failed:
 
     return NGX_OK;
 }
+#endif
 
-
+#if 0
 static ngx_int_t
 ngx_http_dav_copy_tree_file(ngx_tree_ctx_t *ctx, ngx_str_t *path)
 {
@@ -971,8 +1010,9 @@ ngx_http_dav_copy_tree_file(ngx_tree_ctx_t *ctx, ngx_str_t *path)
 
     return NGX_OK;
 }
+#endif
 
-
+#if 0
 static ngx_int_t
 ngx_http_dav_depth(ngx_http_request_t *r, ngx_int_t dflt)
 {
@@ -1009,8 +1049,9 @@ ngx_http_dav_depth(ngx_http_request_t *r, ngx_int_t dflt)
 
     return NGX_HTTP_DAV_INVALID_DEPTH;
 }
+#endif
 
-
+#if 0
 static ngx_int_t
 ngx_http_dav_error(ngx_log_t *log, ngx_err_t err, ngx_int_t not_found,
     char *failed, u_char *path)
@@ -1043,8 +1084,9 @@ ngx_http_dav_error(ngx_log_t *log, ngx_err_t err, ngx_int_t not_found,
 
     return rc;
 }
+#endif
 
-
+#if 0
 static ngx_int_t
 ngx_http_dav_location(ngx_http_request_t *r, u_char *path)
 {
@@ -1080,18 +1122,20 @@ ngx_http_dav_location(ngx_http_request_t *r, u_char *path)
 
     return NGX_OK;
 }
+#endif
 
 
 static void *
-ngx_http_dav_create_loc_conf(ngx_conf_t *cf)
+ngx_http_allow_method_create_loc_conf(ngx_conf_t *cf)
 {
-    ngx_http_dav_loc_conf_t  *conf;
+    ngx_http_allow_method_loc_conf_t  *conf;
 
-    conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_dav_loc_conf_t));
+    conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_allow_method_loc_conf_t));
     if (conf == NULL) {
         return NULL;
     }
 
+#if 0
     /*
      * set by ngx_pcalloc():
      *
@@ -1101,16 +1145,18 @@ ngx_http_dav_create_loc_conf(ngx_conf_t *cf)
     conf->min_delete_depth = NGX_CONF_UNSET_UINT;
     conf->access = NGX_CONF_UNSET_UINT;
     conf->create_full_put_path = NGX_CONF_UNSET;
+#endif
 
     return conf;
 }
 
 
 static char *
-ngx_http_dav_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
+ngx_http_allow_method_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
-    ngx_http_dav_loc_conf_t  *prev = parent;
-    ngx_http_dav_loc_conf_t  *conf = child;
+#if 0
+    ngx_http_allow_method_loc_conf_t  *prev = parent;
+    ngx_http_allow_method_loc_conf_t  *conf = child;
 
     ngx_conf_merge_bitmask_value(conf->methods, prev->methods,
                          (NGX_CONF_BITMASK_SET|NGX_HTTP_DAV_OFF));
@@ -1122,13 +1168,14 @@ ngx_http_dav_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_value(conf->create_full_put_path,
                          prev->create_full_put_path, 0);
+#endif
 
     return NGX_CONF_OK;
 }
 
 
 static ngx_int_t
-ngx_http_dav_init(ngx_conf_t *cf)
+ngx_http_allow_method_init(ngx_conf_t *cf)
 {
     ngx_http_handler_pt        *h;
     ngx_http_core_main_conf_t  *cmcf;
@@ -1140,7 +1187,7 @@ ngx_http_dav_init(ngx_conf_t *cf)
         return NGX_ERROR;
     }
 
-    *h = ngx_http_dav_handler;
+    *h = ngx_http_allow_method_handler;
 
     return NGX_OK;
 }
