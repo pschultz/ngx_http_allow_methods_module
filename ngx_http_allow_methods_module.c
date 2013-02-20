@@ -54,7 +54,7 @@ ngx_http_allow_methods_set_allow_methods(ngx_conf_t *cf, ngx_command_t *cmd, voi
 
     rc.pattern = value[1];
     rc.pool = cf->pool;
-    rc.options = 1;                    /* case sensitive */
+    rc.options = 0;                    /* case-sensitive */
     rc.err.len = NGX_MAX_CONF_ERRSTR;
     rc.err.data = errstr;
 
