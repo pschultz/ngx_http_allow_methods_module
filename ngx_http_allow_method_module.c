@@ -1,7 +1,6 @@
 
 /*
- * Copyright (C) Igor Sysoev
- * Copyright (C) Nginx, Inc.
+ * Copyright (C) 2013 Peter Schultz <schultz.peter@hotmail.com>
  */
 
 
