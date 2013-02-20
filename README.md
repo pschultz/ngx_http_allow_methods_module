@@ -42,6 +42,13 @@ This directive describes HTTP methods that should be passed along. The pattern i
 
   [1]: http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1.1
 
+## Installation
+
+The installation procedure is the same as for any other module:
+
+    ./configure --add-module=path/to/this/clone
+
+This module has no external dependencies. PCRE support must be enabled.
 
 ## Internals
 
