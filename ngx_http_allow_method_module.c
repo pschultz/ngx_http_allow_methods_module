@@ -14,22 +14,22 @@ typedef struct {
 #if (NGX_PCRE)
     ngx_regex_t  *regex;
 #endif
-} ngx_http_allow_method_loc_conf_t;
+} ngx_http_allow_methods_loc_conf_t;
 
 
-static ngx_int_t ngx_http_allow_method_handler(ngx_http_request_t *r);
+static ngx_int_t ngx_http_allow_methods_handler(ngx_http_request_t *r);
 
-static void *ngx_http_allow_method_create_loc_conf(ngx_conf_t *cf);
-static char *ngx_http_allow_method_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
-static char *ngx_http_allow_method_set_allow_methods(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static ngx_int_t ngx_http_allow_method_init(ngx_conf_t *cf);
+static void *ngx_http_allow_methods_create_loc_conf(ngx_conf_t *cf);
+static char *ngx_http_allow_methods_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
+static char *ngx_http_allow_methods_set_allow_methods(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static ngx_int_t ngx_http_allow_methods_init(ngx_conf_t *cf);
 
 
-static ngx_command_t  ngx_http_allow_method_commands[] = {
+static ngx_command_t  ngx_http_allow_methods_commands[] = {
 
     { ngx_string("allow_methods"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_1MORE,
-      ngx_http_allow_method_set_allow_methods,
+      ngx_http_allow_methods_set_allow_methods,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
@@ -38,11 +38,11 @@ static ngx_command_t  ngx_http_allow_method_commands[] = {
 };
 
 static char *
-ngx_http_allow_method_set_allow_methods(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+ngx_http_allow_methods_set_allow_methods(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
 #if (NGX_PCRE)
 
-    ngx_http_allow_method_loc_conf_t *clcf = conf;
+    ngx_http_allow_methods_loc_conf_t *clcf = conf;
 
     ngx_str_t            *value;
     ngx_regex_compile_t   rc;
@@ -77,9 +77,9 @@ ngx_http_allow_method_set_allow_methods(ngx_conf_t *cf, ngx_command_t *cmd, void
 #endif
 }
 
-static ngx_http_module_t  ngx_http_allow_method_module_ctx = {
+static ngx_http_module_t  ngx_http_allow_methods_module_ctx = {
     NULL,                                           /* preconfiguration */
-    ngx_http_allow_method_init,                     /* postconfiguration */
+    ngx_http_allow_methods_init,                     /* postconfiguration */
                                              
     NULL,                                           /* create main configuration */
     NULL,                                           /* init main configuration */
@@ -87,15 +87,15 @@ static ngx_http_module_t  ngx_http_allow_method_module_ctx = {
     NULL,                                           /* create server configuration */
     NULL,                                           /* merge server configuration */
 
-    ngx_http_allow_method_create_loc_conf,          /* create location configuration */
-    ngx_http_allow_method_merge_loc_conf            /* merge location configuration */
+    ngx_http_allow_methods_create_loc_conf,          /* create location configuration */
+    ngx_http_allow_methods_merge_loc_conf            /* merge location configuration */
 };
 
 
-ngx_module_t  ngx_http_allow_method_module = {
+ngx_module_t  ngx_http_allow_methods_module = {
     NGX_MODULE_V1,
-    &ngx_http_allow_method_module_ctx,              /* module context */
-    ngx_http_allow_method_commands,                 /* module directives */
+    &ngx_http_allow_methods_module_ctx,              /* module context */
+    ngx_http_allow_methods_commands,                 /* module directives */
     NGX_HTTP_MODULE,                                /* module type */
     NULL,                                           /* init master */
     NULL,                                           /* init module */
@@ -109,17 +109,17 @@ ngx_module_t  ngx_http_allow_method_module = {
 
 
 static ngx_int_t
-ngx_http_allow_method_handler(ngx_http_request_t *r)
+ngx_http_allow_methods_handler(ngx_http_request_t *r)
 {
 #if (NGX_PCRE)
     ngx_int_t                         rc;
-    ngx_http_allow_method_loc_conf_t *clcf;
+    ngx_http_allow_methods_loc_conf_t *clcf;
     int                               captures[1];
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http allow_method handler");
+                   "http allow_methods handler");
 
-    clcf = ngx_http_get_module_loc_conf(r, ngx_http_allow_method_module);
+    clcf = ngx_http_get_module_loc_conf(r, ngx_http_allow_methods_module);
 
     if (clcf->regex == NULL) {
         return NGX_DECLINED;
@@ -132,7 +132,7 @@ ngx_http_allow_method_handler(ngx_http_request_t *r)
     }
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http allow_method faking request method as POST (%d -> %d)", r->method, NGX_HTTP_UNKNOWN_BUT_ALLOWED);
+                   "http allow_methods faking request method as POST (%d -> %d)", r->method, NGX_HTTP_UNKNOWN_BUT_ALLOWED);
 
     r->method = NGX_HTTP_UNKNOWN_BUT_ALLOWED;
 
@@ -143,11 +143,11 @@ ngx_http_allow_method_handler(ngx_http_request_t *r)
 
 
 static void *
-ngx_http_allow_method_create_loc_conf(ngx_conf_t *cf)
+ngx_http_allow_methods_create_loc_conf(ngx_conf_t *cf)
 {
-    ngx_http_allow_method_loc_conf_t  *conf;
+    ngx_http_allow_methods_loc_conf_t  *conf;
 
-    conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_allow_method_loc_conf_t));
+    conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_allow_methods_loc_conf_t));
     if (conf == NULL) {
         return NULL;
     }
@@ -169,10 +169,10 @@ ngx_http_allow_method_create_loc_conf(ngx_conf_t *cf)
 
 
 static char *
-ngx_http_allow_method_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
+ngx_http_allow_methods_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
-    ngx_http_allow_method_loc_conf_t  *prev = parent;
-    ngx_http_allow_method_loc_conf_t  *conf = child;
+    ngx_http_allow_methods_loc_conf_t  *prev = parent;
+    ngx_http_allow_methods_loc_conf_t  *conf = child;
 
 #if (NGX_PCRE)
     if (conf->regex == NULL) {
@@ -196,7 +196,7 @@ ngx_http_allow_method_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
 
 static ngx_int_t
-ngx_http_allow_method_init(ngx_conf_t *cf)
+ngx_http_allow_methods_init(ngx_conf_t *cf)
 {
     ngx_http_handler_pt        *h;
     ngx_http_core_main_conf_t  *cmcf;
@@ -208,7 +208,7 @@ ngx_http_allow_method_init(ngx_conf_t *cf)
         return NGX_ERROR;
     }
 
-    *h = ngx_http_allow_method_handler;
+    *h = ngx_http_allow_methods_handler;
 
     return NGX_OK;
 }
