@@ -9,7 +9,7 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 
-#define NGX_HTTP_UNKNOWN_BUT_ALLOWED NGX_HTTP_POST
+#define NGX_HTTP_UNKNOWN_BUT_ALLOWED NGX_HTTP_GET
 
 typedef struct {
 #if (NGX_PCRE)
